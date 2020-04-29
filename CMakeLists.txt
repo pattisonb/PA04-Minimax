@@ -3,4 +3,4 @@ project(Minimax)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(Minimax main.cpp GameBoard.h)
+add_executable(Minimax main.cpp GameBoard.h AI.h Board.h)
