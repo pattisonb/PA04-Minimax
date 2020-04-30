@@ -5,11 +5,14 @@
 #include <vector>
 #include <algorithm>
 
+//easier to name the strings here than to deal with X's and O's the whole time
 const std::string person = "X";
 const std::string ai = "O";
 
+//need to pass a player to bestMove functions to use the right string
 enum Player { human, AI};
 
+//move struct to return for an AI move
 struct Move {
     Move() {};
     Move(int Score) : score(Score) {};
@@ -20,11 +23,13 @@ struct Move {
 
 class GameBoard {
 private:
+    //using a vector so i can easily resize between size of tic tac toe board
     int boardSize;
     std::vector<std::vector<std::string>> board;
 public:
     GameBoard(int size) {
         boardSize = size;
+        //fill board with - to easily check if spot is taken
         for (int i = 0; i < boardSize; i++) {
             std::vector<std::string> row;
             for (int j = 0; j < boardSize; j++) {
@@ -34,6 +39,7 @@ public:
         }
         printBoard();
         int turn = 0;
+        //run the game as long as nobody has won the game
         while (checkWin(board) == "null") {
             playerTurn();
             printBoard();
@@ -46,7 +52,9 @@ public:
                 break;
             }
             std::cout << "Computer turn" << std::endl;
+            //set a new move to the best move by the AI
             Move AIMove = bestMove(AI);
+            //make that move
             board[AIMove.row][AIMove.column] = ai;
             printBoard();
             if (checkWin(board) == "O") {
@@ -60,6 +68,7 @@ public:
         }
     }
     void printBoard() {
+        //formatting board properly
         std::cout << "  ";
         for (int i = 0; i <= ((boardSize * 7)); i++) {
             std::cout << "-";
@@ -67,6 +76,8 @@ public:
         std::cout << std::endl;
 
         int boardSpaces = 1;
+        //print an X or an O if it's there
+        //otherwise print the number according to the input for that space
         for (int i = 0; i < boardSize; i++) {
             for (int j = 0; j < boardSize; j++) {
                 if (board[i][j] != "-") {
@@ -107,6 +118,8 @@ public:
                 for (int i = 0; i < boardSize; i++) {
                     for (int j = 0; j < boardSize; j++) {
                         if (board[i][j] == "-") {
+                            //using divide and modulo the place the X
+                            //only places if empty
                             int row = (input-1) / boardSize;
                             int col = (input-1) % boardSize;
                             board[row][col] = person;
@@ -123,6 +136,7 @@ public:
     }
 
     std::string checkWin(std::vector<std::vector<std::string>> newBoard) {
+        //separate checkWin function to check a win for both players rather than calling checkPlayer win twice everytime
         if (checkPlayerWin(newBoard, human) == "X") {
             return "X";
         }
@@ -141,7 +155,7 @@ public:
         if (isTie) {
             return "Tie";
         }
-
+        //rerturning the literal value null if it's a tie
         return "null";
     }
 
@@ -156,15 +170,18 @@ public:
             returnValue = "O";
         }
 
+        //fill a vector with either X or O depending on the player passed
         std::vector<std::string> winChecker;
         for (int i = 0; i < boardSize; i++) {
             winChecker.push_back(playerMark);
         }
+        //checking horizontal
         for (int i = 0; i < boardSize; i++) {
             if (board[i] == winChecker) {
                 return returnValue;
             }
         }
+        //checking vertical
         std::vector<std::string> check;
         for (int j = 0; j < boardSize; j++) {
             for (int i = 0; i < boardSize; i++) {
@@ -178,6 +195,7 @@ public:
 
         check.clear();
 
+        //checking right diagonal
         int count = 0;
         for (int i = 0; i < boardSize; i++) {
             check.push_back(newBoard[i][count]);
@@ -190,6 +208,7 @@ public:
 
         check.clear();
 
+        //checking left diagonal
         count = boardSize - 1;
         for (int i = 0; i < boardSize; i++) {
             check.push_back(newBoard[i][count]);
@@ -199,13 +218,15 @@ public:
         if (check == winChecker) {
             return returnValue;
         }
-
+        //other wise it's just null
         return "null";
     }
 
+    //minimax function
     Move bestMove(Player player) {
-
+        //base case for the MiniMax recursion
         std::string result = checkWin(board);
+        //return a 10 if ai wins, -10 if person wins and a 0 if tie
         if (result == ai) {
             return Move(10);
         }
@@ -216,32 +237,42 @@ public:
             return Move(0);
         }
 
+        //vector of moves to keep track of all of them to find the one the results in the either min or max score depening on the player
+        //AI is trying to max while player is trying to min
         std::vector<Move> moves;
 
         for (int x = 0; x < boardSize; x++) {
             for (int y = 0; y < boardSize; y++) {
+                //find the first available space and make that move
                 if (board[x][y] == "-") {
                     Move move;
                     move.row = x;
                     move.column = y;
                     if (player == AI) {
                         board[x][y] = ai;
+                        //get the score of that move by running the game to completion once that move is made
                         move.score = bestMove(human).score;
                     }
                     else if (player == human) {
                         board[x][y] = person;
                         move.score = bestMove(AI).score;
                     }
+                    //add that move to the vector
                     moves.push_back(move);
+                    //set the position back to nothing because we were only checking not placing yet
                     board[x][y] = "-";
                 }
             }
         }
 
+        //bestMove is the index of the moves vector to be returned
         int bestMove = 0;
         if (player == AI) {
+            //since AI is trying to max, bestScore has to be set really low
+            //since it's low any move will be greater than it at first
             int bestScore = -100;
             for (int i = 0; i < moves.size(); i++) {
+                //set bestMove to the index of the move with the highest possible score
                 if (moves[i].score > bestScore) {
                     bestMove = i;
                     bestScore = moves[i].score;
@@ -250,6 +281,7 @@ public:
         }
         else if (player == human) {
             int bestScore = 100;
+            //same as above but since it's the human it needs to minimize
             for (int i = 0; i < moves.size(); i++) {
                 if (moves[i].score < bestScore) {
                     bestMove = i;
@@ -258,6 +290,7 @@ public:
             }
         }
 
+        //return that best move
         return moves[bestMove];
     }
 };
