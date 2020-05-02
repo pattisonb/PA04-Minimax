@@ -4,6 +4,8 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <chrono>
+using namespace std::chrono;
 
 //easier to name the strings here than to deal with X's and O's the whole time
 const std::string person = "X";
@@ -25,7 +27,7 @@ class GameBoard {
 private:
     //using a vector so i can easily resize between size of tic tac toe board
     int boardSize;
-    std::vector<std::vector<std::string>> board;
+    std::vector<std::vector<std::string> > board;
 public:
     GameBoard(int size) {
         boardSize = size;
@@ -53,10 +55,15 @@ public:
             }
             std::cout << "Computer turn" << std::endl;
             //set a new move to the best move by the AI
+            auto t1 = high_resolution_clock::now();
+//            Move AIMove = bestMoveAlphaBeta(AI, -100, 100);
             Move AIMove = bestMove(AI);
+            auto t2 = high_resolution_clock::now();
             //make that move
             board[AIMove.row][AIMove.column] = ai;
             printBoard();
+            auto elapsedTime = duration_cast <microseconds>( t2 - t1 ).count();
+            std::cout << "Time: " << elapsedTime << "\n" << std::endl;
             if (checkWin(board) == "O") {
                 std::cout << "You lost!" << std::endl;
                 break;
@@ -94,7 +101,7 @@ public:
             if (i != boardSize - 1) {
                 std::cout << "  |  \n" << "  |";
                 for (int x = 0; x < boardSize; x++) {
-                    std::cout << " ---- |";
+                    std::cout << "------|";
                 }
                 std::cout << std::endl;
             }
@@ -135,7 +142,7 @@ public:
         }
     }
 
-    std::string checkWin(std::vector<std::vector<std::string>> newBoard) {
+    std::string checkWin(std::vector<std::vector<std::string> > newBoard) {
         //separate checkWin function to check a win for both players rather than calling checkPlayer win twice everytime
         if (checkPlayerWin(newBoard, human) == "X") {
             return "X";
@@ -159,7 +166,7 @@ public:
         return "null";
     }
 
-    std::string checkPlayerWin(std::vector<std::vector<std::string>> newBoard, Player player) {
+    std::string checkPlayerWin(std::vector<std::vector<std::string> > newBoard, Player player) {
         std::string playerMark;
         std::string returnValue;
         if (player == human) {
@@ -261,6 +268,87 @@ public:
                     moves.push_back(move);
                     //set the position back to nothing because we were only checking not placing yet
                     board[x][y] = "-";
+                }
+            }
+        }
+
+        //bestMove is the index of the moves vector to be returned
+        int bestMove = 0;
+        if (player == AI) {
+            //since AI is trying to max, bestScore has to be set really low
+            //since it's low any move will be greater than it at first
+            int bestScore = -100;
+            for (int i = 0; i < moves.size(); i++) {
+                //set bestMove to the index of the move with the highest possible score
+                if (moves[i].score > bestScore) {
+                    bestMove = i;
+                    bestScore = moves[i].score;
+                }
+            }
+        }
+        else if (player == human) {
+            int bestScore = 100;
+            //same as above but since it's the human it needs to minimize
+            for (int i = 0; i < moves.size(); i++) {
+                if (moves[i].score < bestScore) {
+                    bestMove = i;
+                    bestScore = moves[i].score;
+                }
+            }
+        }
+
+        //return that best move
+        return moves[bestMove];
+    }
+
+
+    Move bestMoveAlphaBeta(Player player, int alpha, int beta) {
+        //base case for the MiniMax recursion
+        std::string result = checkWin(board);
+        //return a 10 if ai wins, -10 if person wins and a 0 if tie
+        if (result == ai) {
+            return Move(10);
+        }
+        else if (result == person) {
+            return Move(-10);
+        }
+        else if (result == "Tie") {
+            return Move(0);
+        }
+
+        //vector of moves to keep track of all of them to find the one the results in the either min or max score depening on the player
+        //AI is trying to max while player is trying to min
+        std::vector<Move> moves;
+
+        for (int x = 0; x < boardSize; x++) {
+            for (int y = 0; y < boardSize; y++) {
+                //find the first available space and make that move
+                if (board[x][y] == "-") {
+                    Move move;
+                    move.row = x;
+                    move.column = y;
+                    if (player == AI) {
+                        board[x][y] = ai;
+                        //get the score of that move by running the game to completion once that move is made
+                        move.score = bestMoveAlphaBeta(human, alpha, beta).score;
+                        if (alpha < move.score) {
+                            alpha = move.score;
+                        }
+                    }
+                    else if (player == human) {
+                        board[x][y] = person;
+                        move.score = bestMoveAlphaBeta(AI, alpha, beta).score;
+                        if (beta > move.score) {
+                            beta = move.score;
+                        }
+                    }
+                    //add that move to the vector
+                    moves.push_back(move);
+                    //set the position back to nothing because we were only checking not placing yet
+                    board[x][y] = "-";
+                    if (beta <= alpha) {
+                        break;
+                    }
                 }
             }
         }
