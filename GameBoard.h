@@ -30,6 +30,13 @@ private:
     std::vector<std::vector<std::string> > board;
 public:
     GameBoard(int size) {
+        bool alphaBeta = true;
+        std::cout << "Would you like to use alpha-beta pruning? (y/n)" << std::endl;
+        std::string result;
+        std::cin >> result;
+        if (result == "n" || result == "N") {
+            alphaBeta = false;
+        }
         boardSize = size;
         //fill board with - to easily check if spot is taken
         for (int i = 0; i < boardSize; i++) {
@@ -56,8 +63,13 @@ public:
             std::cout << "Computer turn" << std::endl;
             //set a new move to the best move by the AI
             auto t1 = high_resolution_clock::now();
-//            Move AIMove = bestMoveAlphaBeta(AI, -100, 100);
-            Move AIMove = bestMove(AI);
+            Move AIMove;
+            if (!alphaBeta) {
+                AIMove = bestMove(AI);
+            }
+            else {
+                AIMove = bestMoveAlphaBeta(AI, -100, 100);
+            }
             auto t2 = high_resolution_clock::now();
             //make that move
             board[AIMove.row][AIMove.column] = ai;
@@ -303,6 +315,7 @@ public:
 
 
     Move bestMoveAlphaBeta(Player player, int alpha, int beta) {
+        //almost the exact same as minimax except for the integers alpha and beta
         //base case for the MiniMax recursion
         std::string result = checkWin(board);
         //return a 10 if ai wins, -10 if person wins and a 0 if tie
@@ -333,6 +346,7 @@ public:
                         move.score = bestMoveAlphaBeta(human, alpha, beta).score;
                         if (alpha < move.score) {
                             alpha = move.score;
+                            //set alpha to the highest score we've seen so fair
                         }
                     }
                     else if (player == human) {
@@ -340,12 +354,15 @@ public:
                         move.score = bestMoveAlphaBeta(AI, alpha, beta).score;
                         if (beta > move.score) {
                             beta = move.score;
+                            //set beta to the lowest score seen so far
                         }
                     }
                     //add that move to the vector
                     moves.push_back(move);
                     //set the position back to nothing because we were only checking not placing yet
                     board[x][y] = "-";
+                    //if beta is ever less than alpha than that means the branch will not result in a better result than a perviously
+                    //found move so we leave it
                     if (beta <= alpha) {
                         break;
                     }
